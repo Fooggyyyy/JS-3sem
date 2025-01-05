@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todolist</title>
+    <style>
+        /* Основные стили для страницы */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column; /* Вертикальное выравнивание */
+            margin: 0;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: #4CAF50;
+        }
+
+        /* Контейнер для ввода задачи и кнопки */
+        #task-input {
+            width: 100%;
+            max-width: 400px;
+            padding: 10px;
+            font-size: 1rem;
+            margin: 0 auto 10px;
+            display: block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        #add-button {
+            width: 100%;
+            max-width: 400px;
+            padding: 10px;
+            font-size: 1rem;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        #add-button:hover {
+            background-color: #45a049;
+        }
+
+        /* Контейнер для фильтров и списка задач */
+        #filters-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #task-list-container {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            background-color: #fff;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .task-item input[type="checkbox"] {
+            margin-right: 10px;
+        }
+
+        .task-item button {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+
+        .task-item button:hover {
+            background-color: #d32f2f;
+        }
+
+        .task-item button.edit-btn {
+            background-color: #4CAF50;
+        }
+
+        .task-item button.edit-btn:hover {
+            background-color: #45a049;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Список задач</h1>
+
+    <input type="text" id="task-input" placeholder="Введите задачу" />
+    <button id="add-button">Добавить задачу</button>
+
+    <div id="filters-container">
+        <button id="show-all">Показать все</button>
+        <button id="show-completed">Показать выполненные</button>
+        <button id="show-pending">Показать не выполненные</button>
+    </div>
+
+    <div id="task-list-container"></div>
+
+    <script>
+        class Task {
+            static id_value = 1;
+            constructor(name_task, ready) {
+                this.id = Task.id_value;
+                Task.id_value++;
+                this.name_task = name_task;
+                this.ready = ready || "не выполнено"; // Если статус не передан, ставим "не выполнено"
+            }
+
+            get name_task_getter() {
+                return this.name_task;
+            }
+
+            get ready_getter() {
+                return this.ready;
+            }
+
+            set name_task_setter(value) {
+                this.name_task = value;
+            }
+
+            set ready_setter(value) {
+                if (value === "выполнено" || value === "не выполнено") {
+                    this.ready = value;
+                } else {
+                    throw new Error("Не корректный статус задачи");
+                }
+            }
+        }
+
+        class Todolist {
+            constructor(listName) {
+                this.listName = listName;
+                this.tasks = [];
+            }
+
+            addTask(task) {
+                if (task instanceof Task) {
+                    this.tasks.push(task);
+                } else {
+                    throw new Error("Можно добавлять только объекты класса Task");
+                }
+            }
+
+            filterTasksByStatus(status) {
+                if (status !== "выполнено" && status !== "не выполнено") {
+                    throw new Error("Некорректный статус для фильтрации");
+                }
+                return this.tasks.filter((task) => task.ready === status);
+            }
+
+            removeTask(taskId) {
+                this.tasks = this.tasks.filter(task => task.id !== taskId);
+            }
+
+            toggleTaskStatus(taskId) {
+                const task = this.tasks.find(task => task.id === taskId);
+                if (task) {
+                    task.ready = task.ready === "выполнено" ? "не выполнено" : "выполнено";
+                }
+            }
+        }
+
+        const todolist = new Todolist("Мой список задач");
+        const taskInput = document.getElementById('task-input');
+        const addButton = document.getElementById('add-button');
+        const taskListContainer = document.getElementById('task-list-container');
+
+        // Функция для отображения списка задач
+        function displayTasks() {
+            taskListContainer.innerHTML = "";
+            todolist.tasks.forEach(task => {
+                const taskElement = document.createElement("div");
+                taskElement.classList.add("task-item");
+
+                const taskCheckbox = document.createElement("input");
+                taskCheckbox.type = "checkbox";
+                taskCheckbox.checked = task.ready === "выполнено";
+                taskCheckbox.addEventListener("change", () => {
+                    todolist.toggleTaskStatus(task.id);
+                    displayTasks();
+                });
+
+                const taskName = document.createElement("span");
+                taskName.textContent = task.name_task + task.id;
+
+                const editButton = document.createElement("button");
+                editButton.classList.add("edit-btn");
+                editButton.textContent = "Редактировать";
+                editButton.addEventListener("click", () => {
+                    const newName = prompt("Измените название задачи:", task.name_task);
+                    if (newName) {
+                        task.name_task_setter = newName;
+                        displayTasks();
+                    }
+                });
+
+                const deleteButton = document.createElement("button");
+                deleteButton.textContent = "Удалить";
+                deleteButton.addEventListener("click", () => {
+                    todolist.removeTask(task.id);
+                    displayTasks();
+                });
+
+                taskElement.appendChild(taskCheckbox);
+                taskElement.appendChild(taskName);
+                taskElement.appendChild(editButton);
+                taskElement.appendChild(deleteButton);
+                taskListContainer.appendChild(taskElement);
+            });
+        }
+
+        addButton.addEventListener("click", () => {
+            const taskName = taskInput.value.trim();
+            if (taskName) {
+                const newTask = new Task(taskName);
+                todolist.addTask(newTask);
+                taskInput.value = "";
+                displayTasks();
+            }
+        });
+
+        // Фильтрация задач
+        document.getElementById('show-all').addEventListener('click', () => {
+            displayTasks();
+        });
+
+        document.getElementById('show-completed').addEventListener('click', () => {
+            const completedTasks = todolist.filterTasksByStatus("выполнено");
+            taskListContainer.innerHTML = "";
+            completedTasks.forEach(task => {
+                const taskElement = document.createElement("div");
+                taskElement.classList.add("task-item");
+                taskElement.textContent = task.name_task;
+                taskListContainer.appendChild(taskElement);
+            });
+        });
+
+        document.getElementById('show-pending').addEventListener('click', () => {
+            const pendingTasks = todolist.filterTasksByStatus("не выполнено");
+            taskListContainer.innerHTML = "";
+            pendingTasks.forEach(task => {
+                const taskElement = document.createElement("div");
+                taskElement.classList.add("task-item");
+                taskElement.textContent = task.name_task;
+                taskListContainer.appendChild(taskElement);
+            });
+        });
+    </script>
+
+</body>
+</html>
